@@ -1,7 +1,7 @@
 import * as request from 'request-promise';
 import { BadRequestException, Injectable } from '@nestjs/common';
 
-import env from '@environments';
+import environments from '@environments';
 import { StatusCodeError } from 'request-promise/errors';
 
 interface GoogleProfile {
@@ -36,9 +36,9 @@ export class OAuthService {
                 uri: 'https://oauth2.googleapis.com/token',
                 body: {
                     code: code,
-                    client_id: env.GOOGLE_CLIENT_ID,
-                    client_secret: env.GOOGLE_CLIENT_SECRET,
-                    redirect_uri: env.GOOGLE_REDIRECT_URI,
+                    client_id: environments.GOOGLE_CLIENT_ID,
+                    client_secret: environments.GOOGLE_CLIENT_SECRET,
+                    redirect_uri: environments.GOOGLE_REDIRECT_URI,
                     grant_type: 'authorization_code',
                 },
                 json: true,
@@ -53,6 +53,7 @@ export class OAuthService {
             return profile;
         } catch (err) {
             if (err instanceof StatusCodeError) {
+                console.log(err);
                 throw new BadRequestException('fail to get google data');
             }
             throw err;

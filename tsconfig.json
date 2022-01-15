@@ -13,14 +13,21 @@
     "baseUrl": "./",
     "incremental": true,
     "skipLibCheck": true,
-    "strictNullChecks": false,
+    "strictNullChecks": true,
+    "strictPropertyInitialization": false,
     "noImplicitAny": false,
     "strictBindCallApply": false,
     "forceConsistentCasingInFileNames": false,
     "noFallthroughCasesInSwitch": false,
     "paths": {
         "@environments": ["./src/environments"],
-        "@entities/*": ["./src/entities/*"]
+        "@interceptors": ["./src/interceptors"],
+        "@guards": ["./src/guards"],
+        "@middlewares": ["./src/middlewares"],
+        "@decorators": ["./src/decorators"],
+        "@entities": ["./src/entities"],
+        "@utils/*": ["./src/utils/*"],
+        "@config/*": ["./src/config/*"]
     }
   }
 }
