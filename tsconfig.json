@@ -27,7 +27,8 @@
         "@decorators": ["./src/decorators"],
         "@entities": ["./src/entities"],
         "@utils/*": ["./src/utils/*"],
-        "@config/*": ["./src/config/*"]
+        "@config/*": ["./src/config/*"],
+        "@app/*": ["./src/app/*"]
     }
   }
 }

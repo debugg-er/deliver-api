@@ -20,14 +20,11 @@ export class User {
     @IsEmail()
     email: string;
 
-    @Column({ name: 'is_verified', default: false })
-    isVerified: boolean;
-
     @Column({ type: 'text', name: 'avatar_path', default: null })
     avatar: string | null;
 
-    @Column({ name: 'joined_at', default: 'CURRENT_TIMESTAMP' })
-    joinedAt: Date;
+    @Column({ name: 'created_at', default: 'CURRENT_TIMESTAMP' })
+    createdAt: Date;
 
     private tempPassword: string;
 

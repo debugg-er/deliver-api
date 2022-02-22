@@ -25,6 +25,8 @@ export class AuthorizeGuard implements CanActivate {
 
         if (!authorization && metadata.require) {
             throw new UnauthorizedException('Not authorized');
+        } else {
+            return true;
         }
 
         try {
@@ -40,7 +42,8 @@ export class AuthorizeGuard implements CanActivate {
         } catch {
             if (metadata.require) {
                 throw new UnauthorizedException('Not authorized');
-            } else return true;
+            }
+            return true;
         }
     }
 }

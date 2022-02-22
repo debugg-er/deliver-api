@@ -35,7 +35,7 @@ export class AccountController {
     async loginWithGoogle(@Query('code') code: string): Promise<any> {
         const token = await this.accountService.loginWithGoogle(code);
         return {
-            url: `${environments.FRONTEND_URL}?token=${token}`,
+            url: `${environments.FRONTEND_URL}?access_token=${token}`,
         };
     }
 

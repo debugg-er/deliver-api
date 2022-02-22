@@ -12,6 +12,7 @@ import { AppService } from './app.service';
 
 import { AccountModule } from './account';
 import { UserModule } from './user';
+import { EventModule } from './event';
 
 @Module({
     imports: [
@@ -19,6 +20,7 @@ import { UserModule } from './user';
         MailerModule.forRoot(mailerconfig),
         AccountModule,
         UserModule,
+        EventModule,
     ],
     controllers: [AppController],
     providers: [
