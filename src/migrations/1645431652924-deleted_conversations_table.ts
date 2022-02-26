@@ -6,7 +6,6 @@ export class deletedConversationsTable1645431652924 implements MigrationInterfac
             CREATE TABLE deleted_conversations (
                 "user" VARCHAR(32) NOT NULL,
                 conversation_id INT NOT NULL,
-                deleted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
                 PRIMARY KEY ("user", conversation_id),
                 FOREIGN KEY ("user") REFERENCES users(username),

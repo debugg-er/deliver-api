@@ -1,20 +1,23 @@
-import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
-import { IsIn, validateOrReject } from 'class-validator';
+import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
+import { validateOrReject } from 'class-validator';
+import { Attachment } from './Attachment';
 
-@Entity('conversations')
-export class Conversation {
+@Entity('messages')
+export class Message {
     @PrimaryColumn({ type: 'bigint' })
     id: number;
 
     @Column({ type: 'text' })
-    title: string;
-
-    @Column({ type: 'text' })
-    @IsIn(['personal', 'group'])
-    type: 'personal' | 'group';
+    content: string;
 
     @Column({ name: 'created_at', default: 'CURRENT_TIMESTAMP' })
     created_at: Date;
+
+    @Column({ type: 'timestamp', name: 'revoked_at' })
+    revoked_at: Date;
+
+    @OneToMany(() => Attachment, (attachment) => attachment.message)
+    attachments: Array<Attachment>;
 
     @BeforeInsert()
     @BeforeUpdate()
