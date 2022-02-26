@@ -1,16 +1,18 @@
-import { APP_GUARD } from '@nestjs/core';
-import { Module } from '@nestjs/common';
+import { APP_GUARD, APP_PIPE, APP_INTERCEPTOR } from '@nestjs/core';
+import { Module, ValidationPipe } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { MailerModule } from '@nestjs-modules/mailer';
 
 import ormconfig from '@config/ormconfig';
 import mailerconfig from '@config/mailerconfig';
 import { AuthorizeGuard } from '@guards';
+import { ErrorsInterceptor } from '@interceptors';
 
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 
 import { AccountModule } from './account';
+import { FileModule } from './file';
 import { UserModule } from './user';
 import { EventModule } from './event';
 
@@ -21,13 +23,22 @@ import { EventModule } from './event';
         AccountModule,
         UserModule,
         EventModule,
+        FileModule,
     ],
     controllers: [AppController],
     providers: [
         AppService,
         {
+            provide: APP_PIPE,
+            useValue: new ValidationPipe({ transform: true, whitelist: true }),
+        },
+        {
             provide: APP_GUARD,
             useClass: AuthorizeGuard,
+        },
+        {
+            provide: APP_INTERCEPTOR,
+            useClass: ErrorsInterceptor,
         },
     ],
 })

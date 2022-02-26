@@ -6,7 +6,7 @@ export class conversationsTable1645427392888 implements MigrationInterface {
             CREATE TABLE conversations (
                 id SERIAL PRIMARY KEY,
                 title VARCHAR(256) NOT NULL,
-                type VARCHAR(16),
+                type VARCHAR(16) NOT NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )
         `);

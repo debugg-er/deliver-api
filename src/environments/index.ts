@@ -1,3 +1,4 @@
+import * as path from 'path';
 import * as dotenv from 'dotenv';
 
 dotenv.config();
@@ -21,6 +22,8 @@ const env = {
 
     MAIL:                   process.env.MAIL,
     MAIL_PASSWORD:          process.env.MAIL_PASSWORD,
+
+    TEMP_FOLDER_PATH:       path.join(__dirname, '../../tmp')
 };
 
 (() => {

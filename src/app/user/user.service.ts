@@ -1,3 +1,4 @@
+import * as argon2 from 'argon2';
 import { QueryFailedError, Repository } from 'typeorm';
 import { PostgresError } from 'pg-error-enum';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
@@ -5,8 +6,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 
 import { User } from '@entities';
 
-import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
+import { CreateUserDto } from './user.dto';
 
 @Injectable()
 export class UserService {
@@ -22,20 +22,15 @@ export class UserService {
     public async findUserByUsername(username: string): Promise<User> {
         const user = await this.userRepository.findOne(username);
         if (!user) {
-            throw new NotFoundException("username doesn't exist");
+            throw new NotFoundException("Username doesn't exist");
         }
         return user;
     }
 
     public async createUser(dto: CreateUserDto): Promise<User> {
         try {
-            const newUser = this.userRepository.create({
-                username: dto.username,
-                password: dto.password,
-                email: dto.email,
-                firstName: dto.firstName,
-                lastName: dto.lastName,
-            });
+            const newUser = this.userRepository.create(dto);
+            newUser.password = await argon2.hash(newUser.password);
             await this.userRepository.insert(newUser);
 
             return newUser;
@@ -49,9 +44,14 @@ export class UserService {
         }
     }
 
-    public async updateUser(username: string, dto: UpdateUserDto): Promise<User> {
-        const user = await this.findUserByUsername(username);
-        Object.assign(user, dto);
-        return await this.userRepository.save(user);
+    public async updateUser(username: string, dto: Partial<User>): Promise<User> {
+        if (dto.password) {
+            dto.password = await argon2.hash(dto.password);
+        }
+        const update = await this.userRepository.update({ username }, dto);
+        if (update.affected === 0) {
+            throw new NotFoundException("Username doesn't exist");
+        }
+        return this.userRepository.findOne(username) as Promise<User>;
     }
 }

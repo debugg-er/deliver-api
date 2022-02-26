@@ -17,5 +17,6 @@ export class ResetPasswordDto {
     @IsNotEmpty()
     password: string;
 
-    oldPassword?: string;
+    @IsNotEmpty()
+    oldPassword: string;
 }

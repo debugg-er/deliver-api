@@ -1,5 +1,4 @@
-import * as argon2 from 'argon2';
-import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate, AfterLoad } from 'typeorm';
+import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
 import { IsEmail, validateOrReject } from 'class-validator';
 
 @Entity('users')
@@ -7,7 +6,7 @@ export class User {
     @PrimaryColumn()
     username: string;
 
-    @Column()
+    @Column({ select: false })
     password: string;
 
     @Column({ type: 'text', name: 'first_name', default: null })
@@ -23,30 +22,18 @@ export class User {
     @Column({ type: 'text', name: 'avatar_path', default: null })
     avatar: string | null;
 
+    @Column({ name: 'female' })
+    female: boolean;
+
+    @Column({ name: 'is_active', default: false })
+    isActive: boolean;
+
     @Column({ name: 'created_at', default: 'CURRENT_TIMESTAMP' })
     createdAt: Date;
-
-    private tempPassword: string;
-
-    @AfterLoad()
-    rememberPassword() {
-        if (this.password) {
-            this.tempPassword = this.password;
-        }
-    }
 
     @BeforeInsert()
     @BeforeUpdate()
     async validate() {
         await validateOrReject(this, { skipMissingProperties: true });
-    }
-
-    @BeforeInsert()
-    @BeforeUpdate()
-    async encryptPassword() {
-        if (!this.password) return;
-        if (this.tempPassword === this.password) return;
-
-        this.password = await argon2.hash(this.password);
     }
 }

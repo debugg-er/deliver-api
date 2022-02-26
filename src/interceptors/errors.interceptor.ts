@@ -9,33 +9,30 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
-import { Observable, throwError } from 'rxjs';
-import { catchError } from 'rxjs/operators';
+import { Observable, catchError, map } from 'rxjs';
 
 @Injectable()
 export class ErrorsInterceptor implements NestInterceptor {
     private readonly logger = new Logger(ErrorsInterceptor.name);
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
-        context.getClass().name;
         return next.handle().pipe(
+            map((data) => ({
+                statusCode: context.switchToHttp().getResponse().statusCode,
+                data: data,
+            })),
             catchError((err) => {
+                console.log(err);
+
                 if (err instanceof HttpException) {
-                    return throwError(() => err);
+                    throw err;
                 }
                 if (Array.isArray(err) && err[0] instanceof ValidationError) {
-                    return throwError(
-                        () =>
-                            new BadRequestException(
-                                err.reduce(
-                                    (acc, cur) => [...acc, ...Object.values(cur.constraints)],
-                                    [],
-                                ),
-                            ),
+                    throw new BadRequestException(
+                        err.reduce((acc, cur) => [...acc, ...Object.values(cur.constraints)], []),
                     );
                 }
-                console.log(err);
-                return throwError(() => new BadGatewayException());
+                throw new BadGatewayException();
             }),
         );
     }

@@ -1,5 +1,6 @@
 import {
     OnGatewayConnection,
+    OnGatewayDisconnect,
     SubscribeMessage,
     WebSocketGateway,
     WebSocketServer,
@@ -13,7 +14,7 @@ import { Token } from '@app/account';
 import { UserService } from '@app/user';
 
 @WebSocketGateway({ cors: { origin: '*' } })
-export class EventGateway implements OnGatewayConnection {
+export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
     constructor(private readonly userService: UserService) {}
 
     @WebSocketServer()
@@ -25,6 +26,7 @@ export class EventGateway implements OnGatewayConnection {
             try {
                 const decoded = jwt.verify(token, environment.JWT_SECRET) as Token;
                 const user = await this.userService.findUserByUsername(decoded.username);
+                await this.userService.updateUser(user.username, { isActive: true });
                 client.handshake.auth.user = user;
             } catch (e) {
                 console.log(e);
@@ -38,5 +40,9 @@ export class EventGateway implements OnGatewayConnection {
     handleUserSendMessage(client: Socket, message: any): void {
         console.log(client.handshake.auth.user);
         this.server.to([...client.rooms]).emit('broadcast', message);
+    }
+
+    async handleDisconnect(client: Socket) {
+        await this.userService.updateUser(client.handshake.auth.user.username, { isActive: false });
     }
 }

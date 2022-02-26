@@ -14,9 +14,7 @@ import { Authorize } from '@guards';
 import { AuthUser } from '@decorators';
 
 import { AccountService } from './account.service';
-import { LoginDto } from './dto/login.dto';
-import { ResetPasswordDto } from './dto/reset-password.dto';
-import { ForgotPasswordDto } from './dto/forgot-password.dto';
+import { LoginDto, ResetPasswordDto, ForgotPasswordDto } from './account.dto';
 import { Token } from './account.interface';
 
 import { UserService, CreateUserDto } from '../user';
@@ -68,7 +66,9 @@ export class AccountController {
             if (!dto.oldPassword) throw new BadRequestException('oldPassword should not be empty');
             await this.accountService.login(auth.username, dto.oldPassword);
         }
-        const user = await this.accountService.resetPassword(auth.username, dto.password);
-        return { user: user };
+        await this.accountService.resetPassword(auth.username, dto.password);
+        return {
+            message: 'Reset password successfuly',
+        };
     }
 }

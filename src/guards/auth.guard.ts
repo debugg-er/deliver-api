@@ -10,7 +10,7 @@ import {
 } from '@nestjs/common';
 
 import environments from '@environments';
-import { Token } from '../app/account';
+import { Token } from '@app/account';
 
 @Injectable()
 export class AuthorizeGuard implements CanActivate {
@@ -24,9 +24,11 @@ export class AuthorizeGuard implements CanActivate {
         const authorization = req.headers.authorization;
 
         if (!authorization && metadata.require) {
-            throw new UnauthorizedException('Not authorized');
-        } else {
-            return true;
+            if (metadata.require) {
+                throw new UnauthorizedException('Not authorized');
+            } else {
+                return true;
+            }
         }
 
         try {
