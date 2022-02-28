@@ -1,5 +1,6 @@
-import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate } from 'typeorm';
+import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
 import { IsIn, validateOrReject } from 'class-validator';
+import { Participant } from './Participant';
 
 @Entity('conversations')
 export class Conversation {
@@ -14,7 +15,10 @@ export class Conversation {
     type: 'personal' | 'group';
 
     @Column({ name: 'created_at', default: 'CURRENT_TIMESTAMP' })
-    created_at: Date;
+    createdAt: Date;
+
+    @OneToMany(() => Participant, (participant) => participant.conversation)
+    participants: Array<Participant>;
 
     @BeforeInsert()
     @BeforeUpdate()

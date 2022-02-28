@@ -1,6 +1,17 @@
-import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
+import {
+    Entity,
+    Column,
+    PrimaryColumn,
+    BeforeInsert,
+    BeforeUpdate,
+    OneToMany,
+    ManyToOne,
+    JoinColumn,
+} from 'typeorm';
 import { validateOrReject } from 'class-validator';
 import { Attachment } from './Attachment';
+import { Participant } from './Participant';
+import { MessageReaction } from './MessageReaction';
 
 @Entity('messages')
 export class Message {
@@ -18,6 +29,23 @@ export class Message {
 
     @OneToMany(() => Attachment, (attachment) => attachment.message)
     attachments: Array<Attachment>;
+
+    @Column({ name: 'participant_id' })
+    participantId: number;
+
+    @ManyToOne(() => Participant, (participant) => participant.messages)
+    @JoinColumn({ name: 'participant_id', referencedColumnName: 'id' })
+    participant: Participant;
+
+    @ManyToOne(() => Message, (message) => message.replies)
+    @JoinColumn({ name: 'reply_of', referencedColumnName: 'id' })
+    parent: Message;
+
+    @OneToMany(() => Message, (message) => message.parent)
+    replies: Array<Message>;
+
+    @OneToMany(() => MessageReaction, (messageReaction) => messageReaction.message)
+    reactions: Array<MessageReaction>;
 
     @BeforeInsert()
     @BeforeUpdate()

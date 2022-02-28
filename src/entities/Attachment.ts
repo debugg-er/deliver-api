@@ -1,4 +1,12 @@
-import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate, ManyToOne } from 'typeorm';
+import {
+    Entity,
+    Column,
+    PrimaryColumn,
+    BeforeInsert,
+    BeforeUpdate,
+    ManyToOne,
+    JoinColumn,
+} from 'typeorm';
 import { validateOrReject } from 'class-validator';
 import { Message } from './Message';
 
@@ -7,10 +15,11 @@ export class Attachment {
     @PrimaryColumn({ type: 'bigint' })
     id: number;
 
-    @Column({ type: 'text' })
+    @Column({ name: 'attachment_path', type: 'text' })
     attachmentPath: string;
 
     @ManyToOne(() => Message, (message) => message.attachments)
+    @JoinColumn({ name: 'message_id', referencedColumnName: 'id' })
     message: Message;
 
     @BeforeInsert()
