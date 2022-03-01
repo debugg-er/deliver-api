@@ -2,7 +2,7 @@ import { BadRequestException, Body, Controller, Get, Patch } from '@nestjs/commo
 
 import { Authorize } from '@guards';
 import { AuthUser } from '@decorators';
-import { User } from '@entities';
+import { Conversation, User } from '@entities';
 import { Token } from '../account';
 
 import { UserService } from './user.service';
@@ -21,6 +21,12 @@ export class UserController {
     @Authorize()
     async getInfo(@AuthUser() user: Token): Promise<User> {
         return this.userSerice.findUserByUsername(user.username);
+    }
+
+    @Get('/me/conversations')
+    @Authorize()
+    async getAuthorizedUserConversations(@AuthUser() user: Token): Promise<Array<Conversation>> {
+        return this.userSerice.findUserConversations(user.username);
     }
 
     @Patch('/me')

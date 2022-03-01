@@ -29,7 +29,7 @@ export class Participant {
     joinedAt: Date;
 
     @Column({ type: 'timestamp', name: 'removed_at' })
-    removed_at: Date | null;
+    removedAt: Date | null;
 
     @OneToMany(() => Message, (message) => message.participant)
     messages: Array<Message>;

@@ -15,17 +15,25 @@ import { MessageReaction } from './MessageReaction';
 
 @Entity('messages')
 export class Message {
-    @PrimaryColumn({ type: 'bigint' })
+    @PrimaryColumn({
+        type: 'bigint',
+        transformer: [
+            {
+                to: (value) => value,
+                from: (value) => parseInt(value),
+            },
+        ],
+    })
     id: number;
 
     @Column({ type: 'text' })
     content: string;
 
     @Column({ name: 'created_at', default: 'CURRENT_TIMESTAMP' })
-    created_at: Date;
+    createdAt: Date;
 
     @Column({ type: 'timestamp', name: 'revoked_at' })
-    revoked_at: Date;
+    revokedAt: Date;
 
     @OneToMany(() => Attachment, (attachment) => attachment.message)
     attachments: Array<Attachment>;
@@ -38,7 +46,7 @@ export class Message {
     participant: Participant;
 
     @ManyToOne(() => Message, (message) => message.replies)
-    @JoinColumn({ name: 'reply_of', referencedColumnName: 'id' })
+    @JoinColumn({ name: 'parent_id', referencedColumnName: 'id' })
     parent: Message;
 
     @OneToMany(() => Message, (message) => message.parent)
