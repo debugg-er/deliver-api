@@ -15,6 +15,7 @@ export class CreateUserDto {
     @IsEmail()
     readonly email: string;
 
+    @IsOptional()
     readonly firstName?: string;
 
     @IsNotEmpty()

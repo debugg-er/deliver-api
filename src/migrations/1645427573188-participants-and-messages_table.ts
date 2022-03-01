@@ -15,41 +15,39 @@ export class participantsTable1645427573188 implements MigrationInterface {
                 delivered_message_id BIGINT,
                 conversation_id INT NOT NULL,
 
-                FOREIGN KEY (conversation_id) REFERENCES conversations(id),
-                FOREIGN KEY ("user") REFERENCES users(username)
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
+                FOREIGN KEY ("user") REFERENCES users(username) ON DELETE CASCADE
             )
         `);
 
         await queryRunner.query(`
             CREATE TABLE messages (
                 id BIGSERIAL PRIMARY KEY,
-                content VARCHAR(256) NOT NULL,
+                content VARCHAR(8000) NOT NULL,
                 revoked_at TIMESTAMP,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-                reply_of BIGINT,
+                parent_id BIGINT,
                 participant_id INT NOT NULL,
 
-                FOREIGN KEY (reply_of) REFERENCES messages(id)
+                FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE CASCADE,
+                FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE
             )
         `);
 
         await queryRunner.query(`
             ALTER TABLE participants ADD CONSTRAINT FK_ParticipantSeenMessage
-            FOREIGN KEY (seen_message_id) REFERENCES messages(id)
+            FOREIGN KEY (seen_message_id) REFERENCES messages(id) ON DELETE SET NULL
         `);
         await queryRunner.query(`
             ALTER TABLE participants ADD CONSTRAINT FK_ParticipantDeliveredMessage
-            FOREIGN KEY (delivered_message_id) REFERENCES messages(id)
+            FOREIGN KEY (delivered_message_id) REFERENCES messages(id) ON DELETE SET NULL
         `);
-        await queryRunner.query(`
-            ALTER TABLE messages ADD CONSTRAINT FK_MessageSentByParticipant
-            FOREIGN KEY (participant_id) REFERENCES participants(id)
-        `);
+        await queryRunner.query(`CREATE INDEX message_parent_id_idx ON messages(parent_id)`);
     }
 
     public async down(queryRunner: QueryRunner): Promise<void> {
-        await queryRunner.query(`ALTER TABLE messages DROP CONSTRAINT FK_MessageSentByParticipant`);
+        await queryRunner.query(`DROP INDEX message_parent_id_idx`);
         await queryRunner.query(
             `ALTER TABLE participants DROP CONSTRAINT FK_ParticipantSeenMessage`,
         );

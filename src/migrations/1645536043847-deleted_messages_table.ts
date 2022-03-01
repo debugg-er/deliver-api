@@ -8,8 +8,8 @@ export class deletedMessagesTable1645536043847 implements MigrationInterface {
                 message_id INT NOT NULL,
 
                 PRIMARY KEY ("user", message_id),
-                FOREIGN KEY ("user") REFERENCES users(username),
-                FOREIGN KEY (message_id) REFERENCES messages(id)
+                FOREIGN KEY ("user") REFERENCES users(username) ON DELETE CASCADE,
+                FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
             )
         `);
     }

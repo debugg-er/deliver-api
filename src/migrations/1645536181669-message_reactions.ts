@@ -10,8 +10,8 @@ export class messageReactions1645536181669 implements MigrationInterface {
                 reacted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
                 PRIMARY KEY (participant_id, message_id),
-                FOREIGN KEY (participant_id) REFERENCES participants(id),
-                FOREIGN KEY (message_id) REFERENCES messages(id)
+                FOREIGN KEY (participant_id) REFERENCES participants(id) ON DELETE CASCADE,
+                FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE CASCADE
             )
         `);
     }

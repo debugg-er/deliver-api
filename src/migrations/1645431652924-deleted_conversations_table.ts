@@ -8,8 +8,8 @@ export class deletedConversationsTable1645431652924 implements MigrationInterfac
                 conversation_id INT NOT NULL,
 
                 PRIMARY KEY ("user", conversation_id),
-                FOREIGN KEY ("user") REFERENCES users(username),
-                FOREIGN KEY (conversation_id) REFERENCES conversations(id)
+                FOREIGN KEY ("user") REFERENCES users(username) ON DELETE CASCADE,
+                FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE
             )
         `);
     }

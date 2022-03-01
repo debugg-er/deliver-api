@@ -8,8 +8,8 @@ export class blockListTable1645430653526 implements MigrationInterface {
                 user_2 VARCHAR(32) NOT NULL,
 
                 PRIMARY KEY (user_1, user_2),
-                FOREIGN KEY (user_1) REFERENCES users(username),
-                FOREIGN KEY (user_2) REFERENCES users(username)
+                FOREIGN KEY (user_1) REFERENCES users(username) ON DELETE CASCADE,
+                FOREIGN KEY (user_2) REFERENCES users(username) ON DELETE CASCADE
             )
         `);
     }

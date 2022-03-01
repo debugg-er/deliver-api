@@ -5,7 +5,7 @@ export class conversationsTable1645427392888 implements MigrationInterface {
         await queryRunner.query(`
             CREATE TABLE conversations (
                 id SERIAL PRIMARY KEY,
-                title VARCHAR(256) NOT NULL,
+                title VARCHAR(256),
                 type VARCHAR(16) NOT NULL,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
             )

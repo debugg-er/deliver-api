@@ -9,8 +9,8 @@ export class contactsTable1645430382494 implements MigrationInterface {
                 status VARCHAR(16) NOT NULL,
 
                 PRIMARY KEY (user_1, user_2),
-                FOREIGN KEY (user_1) REFERENCES users(username),
-                FOREIGN KEY (user_2) REFERENCES users(username)
+                FOREIGN KEY (user_1) REFERENCES users(username) ON DELETE CASCADE,
+                FOREIGN KEY (user_2) REFERENCES users(username) ON DELETE CASCADE
             )
         `);
     }

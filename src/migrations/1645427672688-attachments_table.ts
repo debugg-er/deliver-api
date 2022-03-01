@@ -8,7 +8,7 @@ export class attachmentsTable1645427672688 implements MigrationInterface {
                 attachment_path VARCHAR(256) NOT NULL,
 
                 message_id BIGINT NOT NULL,
-                FOREIGN KEY (message_id) REFERENCES messages(id)
+                FOREIGN KEY (message_id) REFERENCES messages(id) ON DELETE SET NULL
             )
         `);
     }
