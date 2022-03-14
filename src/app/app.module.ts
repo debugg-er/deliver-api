@@ -15,6 +15,8 @@ import { AccountModule } from './account';
 import { FileModule } from './file';
 import { UserModule } from './user';
 import { EventModule } from './event';
+import { MessageModule } from './message';
+import { ConversationModule } from './conversation';
 
 @Module({
     imports: [
@@ -24,6 +26,8 @@ import { EventModule } from './event';
         UserModule,
         EventModule,
         FileModule,
+        MessageModule,
+        ConversationModule,
     ],
     controllers: [AppController],
     providers: [

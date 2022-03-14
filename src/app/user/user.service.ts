@@ -4,7 +4,7 @@ import { PostgresError } from 'pg-error-enum';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Conversation, User } from '@entities';
+import { Participant, User } from '@entities';
 
 import { CreateUserDto } from './user.dto';
 
@@ -13,8 +13,8 @@ export class UserService {
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
-        @InjectRepository(Conversation)
-        private readonly conversationRepository: Repository<Conversation>,
+        @InjectRepository(Participant)
+        private readonly participantRepository: Repository<Participant>,
     ) {}
 
     public async findAllUsers(): Promise<Array<User>> {
@@ -55,16 +55,5 @@ export class UserService {
             throw new NotFoundException("Username doesn't exist");
         }
         return this.userRepository.findOne(username) as Promise<User>;
-    }
-
-    public async findUserConversations(username: string): Promise<Array<Conversation>> {
-        return this.conversationRepository
-            .createQueryBuilder('conversation')
-            .leftJoinAndSelect('conversation.participants', 'participant')
-            .leftJoinAndSelect('participant.messages', 'message')
-            .where('participant.user = :username', { username })
-            .andWhere('participant.removedAt IS NULL')
-            .orderBy('message.createdAt', 'DESC')
-            .getMany();
     }
 }

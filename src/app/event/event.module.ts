@@ -1,11 +1,11 @@
 import { Module } from '@nestjs/common';
 
-import { UserModule } from '@app/user';
-
 import { EventGateway } from './event.gateway';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { Conversation, Message, Participant, User } from '@entities';
 
 @Module({
-    imports: [UserModule],
+    imports: [TypeOrmModule.forFeature([Conversation, User, Participant, Message])],
     providers: [EventGateway],
 })
 export class EventModule {}

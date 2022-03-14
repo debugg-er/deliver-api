@@ -29,7 +29,8 @@
         "@filters": ["./src/filters"],
         "@utils/*": ["./src/utils/*"],
         "@config/*": ["./src/config/*"],
-        "@app/*": ["./src/app/*"]
+        "@app/*": ["./src/app/*"],
+        "@interfaces/*": ["./src/interfaces/*"]
     }
   }
 }

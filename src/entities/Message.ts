@@ -1,12 +1,13 @@
 import {
     Entity,
     Column,
-    PrimaryColumn,
+    // PrimaryColumn,
     BeforeInsert,
     BeforeUpdate,
     OneToMany,
     ManyToOne,
     JoinColumn,
+    PrimaryGeneratedColumn,
 } from 'typeorm';
 import { validateOrReject } from 'class-validator';
 import { Attachment } from './Attachment';
@@ -15,16 +16,8 @@ import { MessageReaction } from './MessageReaction';
 
 @Entity('messages')
 export class Message {
-    @PrimaryColumn({
-        type: 'bigint',
-        transformer: [
-            {
-                to: (value) => value,
-                from: (value) => parseInt(value),
-            },
-        ],
-    })
-    id: number;
+    @PrimaryGeneratedColumn({ type: 'bigint' })
+    id: string;
 
     @Column({ type: 'text' })
     content: string;

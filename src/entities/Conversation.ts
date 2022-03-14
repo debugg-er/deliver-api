@@ -1,6 +1,17 @@
-import { Entity, Column, PrimaryColumn, BeforeInsert, BeforeUpdate, OneToMany } from 'typeorm';
+import {
+    Entity,
+    Column,
+    PrimaryColumn,
+    BeforeInsert,
+    BeforeUpdate,
+    OneToMany,
+    JoinTable,
+    ManyToMany,
+    getRepository,
+} from 'typeorm';
 import { IsIn, validateOrReject } from 'class-validator';
 import { Participant } from './Participant';
+import { Message } from './Message';
 
 @Entity('conversations')
 export class Conversation {
@@ -19,6 +30,16 @@ export class Conversation {
 
     @OneToMany(() => Participant, (participant) => participant.conversation)
     participants: Array<Participant>;
+
+    @ManyToMany(() => Message)
+    @JoinTable({
+        name: 'participants',
+        inverseJoinColumn: { name: 'id', referencedColumnName: 'participantId' },
+        joinColumn: { name: 'conversation_id', referencedColumnName: 'id' },
+    })
+    messages: Array<Message>;
+
+    lastMessage: Message | null;
 
     @BeforeInsert()
     @BeforeUpdate()
