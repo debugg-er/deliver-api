@@ -11,7 +11,7 @@ import {
 
 import environments from '@environments';
 import { Authorize } from '@guards';
-import { AuthUser } from '@decorators';
+import { AuthUser } from '@generals/param.decorator';
 
 import { AccountService } from './account.service';
 import { LoginDto, ResetPasswordDto, ForgotPasswordDto } from './account.dto';

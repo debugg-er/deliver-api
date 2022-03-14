@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Message } from '@entities';
-import { PagingationDto } from '@interfaces/general';
+import { PagingationDto } from '@generals/pagination.dto';
 
 @Injectable()
 export class MessageService {

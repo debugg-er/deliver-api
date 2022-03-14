@@ -1,9 +1,10 @@
 import { BadRequestException, Body, Controller, Get, Patch } from '@nestjs/common';
 
 import { Authorize } from '@guards';
-import { AuthUser } from '@decorators';
+import { AuthUser } from '@generals/param.decorator';
 import { Conversation, User } from '@entities';
 import { ConversationService } from '@app/conversation';
+
 import { Token } from '../account';
 
 import { UserService } from './user.service';

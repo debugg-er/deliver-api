@@ -1,7 +1,7 @@
 import { Controller, Get, Param, Query } from '@nestjs/common';
 
 import { MessageService } from '@app/message';
-import { PagingationDto } from '@interfaces/general';
+import { PagingationDto } from '@generals/pagination.dto';
 
 import { ConversationService } from './conversation.service';
 

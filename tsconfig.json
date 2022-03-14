@@ -24,13 +24,12 @@
         "@interceptors": ["./src/interceptors"],
         "@guards": ["./src/guards"],
         "@middlewares": ["./src/middlewares"],
-        "@decorators": ["./src/decorators"],
         "@entities": ["./src/entities"],
         "@filters": ["./src/filters"],
         "@utils/*": ["./src/utils/*"],
         "@config/*": ["./src/config/*"],
         "@app/*": ["./src/app/*"],
-        "@interfaces/*": ["./src/interfaces/*"]
+        "@generals/*": ["./src/generals/*"]
     }
   }
 }
