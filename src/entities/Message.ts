@@ -22,7 +22,7 @@ export class Message {
     @Column({ type: 'text' })
     content: string;
 
-    @Column({ name: 'created_at', default: 'CURRENT_TIMESTAMP' })
+    @Column({ type: 'time with time zone', name: 'created_at', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date;
 
     @Column({ type: 'timestamp', name: 'revoked_at' })

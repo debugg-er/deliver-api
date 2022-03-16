@@ -23,7 +23,8 @@ const env = {
     MAIL:                   process.env.MAIL,
     MAIL_PASSWORD:          process.env.MAIL_PASSWORD,
 
-    TEMP_FOLDER_PATH:       path.join(__dirname, '../../tmp')
+    TEMP_FOLDER_PATH:       path.join(__dirname, '../../tmp'),
+    PUBLIC_FOLDER_PATH:     path.join(__dirname, '../../public')
 };
 
 (() => {

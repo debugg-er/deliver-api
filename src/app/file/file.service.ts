@@ -7,7 +7,7 @@ export class FileService {
         files.forEach((file) => {
             setTimeout(
                 () => fs.rm(file.path, (err) => (err ? console.log(err) : undefined)),
-                10 * 1000,
+                60 * 60 * 1000,
             );
         });
 

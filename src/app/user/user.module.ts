@@ -2,7 +2,7 @@ import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
 
 import { Conversation, Participant, User } from '@entities';
-import { ConversationService } from '@app/conversation';
+import {ConversationService} from '@app/conversation';
 
 import { UserService } from './user.service';
 import { UserController } from './user.controller';

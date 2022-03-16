@@ -31,6 +31,12 @@ export class Participant {
     @Column({ type: 'timestamp', name: 'removed_at' })
     removedAt: Date | null;
 
+    @Column({ type: 'bigint', name: 'seen_message_id', select: false })
+    seenMessageId?: string | null;
+
+    @Column({ type: 'bigint', name: 'delivered_message_id', select: false })
+    deliveredMessageId?: string | null;
+
     @OneToMany(() => Message, (message) => message.participant)
     messages: Array<Message>;
 
@@ -49,6 +55,9 @@ export class Participant {
     @ManyToOne(() => Message)
     @JoinColumn({ name: 'delivered_message_id', referencedColumnName: 'id' })
     deliveredMessage: Message;
+
+    seen: boolean;
+    delivered: boolean;
 
     @BeforeInsert()
     @BeforeUpdate()

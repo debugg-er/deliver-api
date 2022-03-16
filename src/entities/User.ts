@@ -31,7 +31,7 @@ export class User {
     email: string;
 
     @Column({ type: 'text', name: 'avatar_path', default: null })
-    avatar: string | null;
+    avatarPath: string | null;
 
     @Column({ name: 'female' })
     female: boolean;

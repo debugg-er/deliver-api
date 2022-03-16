@@ -3,12 +3,12 @@ import { BadRequestException, Body, Controller, Get, Patch } from '@nestjs/commo
 import { Authorize } from '@guards';
 import { AuthUser } from '@generals/param.decorator';
 import { Conversation, User } from '@entities';
-import { ConversationService } from '@app/conversation';
 
 import { Token } from '../account';
 
 import { UserService } from './user.service';
 import { UpdateUserDto } from './user.dto';
+import { ConversationService } from '@app/conversation';
 
 @Controller('/users')
 export class UserController {
@@ -30,7 +30,7 @@ export class UserController {
 
     @Get('/me/conversations')
     @Authorize()
-    async getAuthorizedUserConversations(@AuthUser() user: Token): Promise<Array<Conversation>> {
+    async getAuthorizedUserParticipants(@AuthUser() user: Token): Promise<Array<Conversation>> {
         return this.conversationService.findUserConversations(user.username);
     }
 
@@ -40,6 +40,7 @@ export class UserController {
         if (Object.keys(dto).length === 0) {
             throw new BadRequestException('Update user require at least 1 data field');
         }
-        return this.userSerice.updateUser(user.username, dto);
+        const { avatar, ...rest } = dto;
+        return this.userSerice.updateUser(user.username, rest, avatar);
     }
 }

@@ -1,33 +1,24 @@
 import { Repository } from 'typeorm';
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Conversation, Message, Participant } from '@entities';
 
 @Injectable()
-export class ConversationService {
+export class ParticipantService {
     constructor(
-        @InjectRepository(Conversation)
-        private readonly conversationRepository: Repository<Conversation>,
+        @InjectRepository(Participant)
+        private readonly participantRepository: Repository<Participant>,
     ) {}
 
-    public async findConversationById(id: number) {
-        const conversation = await this.conversationRepository.findOne(id);
-        if (!conversation) {
-            throw new NotFoundException('Conversation not found');
-        }
-        return conversation;
-    }
-
-    public async findUserConversations(username: string): Promise<Array<Conversation>> {
-        const conversations = await this.conversationRepository
-            .createQueryBuilder('conversation')
-            .leftJoinAndSelect('conversation.participants', 'ptcp')
-            .leftJoinAndSelect('ptcp.user', 'u')
+    public async findUserParticipants(username: string): Promise<Array<Participant>> {
+        const participants = await this.participantRepository
+            .createQueryBuilder('ptcp')
+            .addSelect(['ptcp.seenMessageId', 'ptcp.deliveredMessageId'])
+            .innerJoinAndSelect('ptcp.conversation', 'conversation')
             .leftJoinAndSelect('conversation.messages', 'message')
             .innerJoinAndSelect('message.participant', 'participant')
             .leftJoinAndSelect('message.attachments', 'attachment')
-            .leftJoinAndSelect('participant.seenMessage', 'lsm')
             .innerJoinAndSelect('participant.user', 'user')
             .innerJoin(
                 (subQuery) =>
@@ -39,7 +30,8 @@ export class ConversationService {
                         // .where('p.user = :username', { username })
                         .groupBy('p.conversation_id'),
                 'msg',
-                'msg.conversation_id = participant.conversation_id AND msg.created_at = message.createdAt',
+                `msg.conversation_id = participant.conversation_id AND
+                msg.created_at = message.createdAt`,
             )
             .where(
                 (qb) =>
@@ -54,15 +46,20 @@ export class ConversationService {
                         .andWhere('p.removedAt IS NULL')
                         .getQuery(),
             )
-            // .andWhere('participant.removedAt IS NULL')
+            .andWhere('ptcp.removedAt IS NULL')
+            .where('ptcp.user = :username', { username })
             .orderBy('message.createdAt', 'DESC')
             .getMany();
 
-        return conversations.map((conversation) => {
-            const conv: any = { ...conversation };
-            conv.lastMessage = conv.messages[0] || null;
-            delete conv.messages;
-            return conv;
+        return participants.map((participant) => {
+            const ptcp: any = { ...participant };
+            ptcp.conversation.lastMessage = ptcp.conversation.messages[0] || null;
+            ptcp.seen = ptcp.seenMessageId == ptcp.conversation.lastMessage.id;
+            ptcp.delivered = ptcp.deliveredMessageId == ptcp.conversation.lastMessage.id;
+            delete ptcp.conversation.messages;
+            delete ptcp.seenMessageId;
+            delete ptcp.deliveredMessageId;
+            return ptcp;
         });
     }
 }
