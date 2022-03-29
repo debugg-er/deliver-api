@@ -1,12 +1,12 @@
 import {
     Entity,
     Column,
-    PrimaryColumn,
     BeforeInsert,
     BeforeUpdate,
     ManyToOne,
     JoinColumn,
     OneToMany,
+    PrimaryGeneratedColumn,
 } from 'typeorm';
 import { IsIn, validateOrReject } from 'class-validator';
 import { Conversation } from './Conversation';
@@ -15,15 +15,15 @@ import { User } from './User';
 
 @Entity('participants')
 export class Participant {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column({ type: 'text' })
     nickname: string | null;
 
     @Column({ type: 'text' })
-    @IsIn(['participant', 'admin'])
-    role: 'participant' | 'admin';
+    @IsIn(['member', 'admin'])
+    role: 'member' | 'admin';
 
     @Column({ name: 'joined_at', default: 'CURRENT_TIMESTAMP' })
     joinedAt: Date;
@@ -37,6 +37,9 @@ export class Participant {
     @Column({ type: 'bigint', name: 'delivered_message_id', select: false })
     deliveredMessageId?: string | null;
 
+    @Column({ type: 'int', name: 'conversation_id', select: false })
+    conversationId?: number;
+
     @OneToMany(() => Message, (message) => message.participant)
     messages: Array<Message>;
 
@@ -47,14 +50,6 @@ export class Participant {
     @ManyToOne(() => User, (user) => user.participants)
     @JoinColumn({ name: 'user', referencedColumnName: 'username' })
     user: User;
-
-    @ManyToOne(() => Message)
-    @JoinColumn({ name: 'seen_message_id', referencedColumnName: 'id' })
-    seenMessage: Message;
-
-    @ManyToOne(() => Message)
-    @JoinColumn({ name: 'delivered_message_id', referencedColumnName: 'id' })
-    deliveredMessage: Message;
 
     seen: boolean;
     delivered: boolean;

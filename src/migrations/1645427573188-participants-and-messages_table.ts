@@ -11,8 +11,8 @@ export class participantsTable1645427573188 implements MigrationInterface {
                 removed_at TIMESTAMP,
 
                 "user" VARCHAR(32) NOT NULL,
-                seen_message_id BIGINT,
-                delivered_message_id BIGINT,
+                seen_message_id INT,
+                delivered_message_id INT,
                 conversation_id INT NOT NULL,
 
                 FOREIGN KEY (conversation_id) REFERENCES conversations(id) ON DELETE CASCADE,
@@ -22,12 +22,12 @@ export class participantsTable1645427573188 implements MigrationInterface {
 
         await queryRunner.query(`
             CREATE TABLE messages (
-                id BIGSERIAL PRIMARY KEY,
+                id SERIAL PRIMARY KEY,
                 content VARCHAR(8000) NOT NULL,
                 revoked_at TIMESTAMP,
                 created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
-                parent_id BIGINT,
+                parent_id INT,
                 participant_id INT NOT NULL,
 
                 FOREIGN KEY (parent_id) REFERENCES messages(id) ON DELETE CASCADE,

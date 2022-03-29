@@ -10,6 +10,8 @@ export default <ConnectionOptions>{
     password: environments.POSTGRES_PASSWORD,
     database: environments.POSTGRES_NAME,
     synchronize: false,
+    supportBigNumbers: false,
+    bigNumberStrings: true,
     logging: ['query'],
     entities: [path.join(__dirname, '../entities/*{.ts,.js}')],
     migrations: [path.join(__dirname, '../migrations/*{.ts,.js}')],

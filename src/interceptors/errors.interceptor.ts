@@ -17,10 +17,15 @@ export class ErrorsInterceptor implements NestInterceptor {
 
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         return next.handle().pipe(
-            map((data) => ({
-                statusCode: context.switchToHttp().getResponse().statusCode,
-                data: data,
-            })),
+            map((data) => {
+                if (data.url) {
+                    return data;
+                }
+                return {
+                    statusCode: context.switchToHttp().getResponse().statusCode,
+                    data: data,
+                };
+            }),
             catchError((err) => {
                 console.log(err);
 

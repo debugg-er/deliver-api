@@ -62,4 +62,20 @@ export class ParticipantService {
             return ptcp;
         });
     }
+
+    public async updateParticipantLastSeenMessage(participantId: number) {
+        const p = await this.participantRepository
+            .createQueryBuilder('participant')
+            .innerJoin('participant.conversation', 'conversation')
+            .innerJoin('conversation.lastMessage', 'last_message')
+            .where('participant.id = :participantId', { participantId })
+            .getOne();
+
+        if (!p || !p.conversation.lastMessage) return;
+
+        await this.participantRepository.update(
+            { id: participantId },
+            { seenMessageId: p.conversation.lastMessage.id },
+        );
+    }
 }

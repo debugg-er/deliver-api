@@ -16,7 +16,7 @@ import { MessageReaction } from './MessageReaction';
 
 @Entity('messages')
 export class Message {
-    @PrimaryGeneratedColumn({ type: 'bigint' })
+    @PrimaryGeneratedColumn({ type: 'integer' })
     id: string;
 
     @Column({ type: 'text' })
@@ -26,7 +26,7 @@ export class Message {
     createdAt: Date;
 
     @Column({ type: 'timestamp', name: 'revoked_at' })
-    revokedAt: Date;
+    revokedAt: Date | null;
 
     @OneToMany(() => Attachment, (attachment) => attachment.message)
     attachments: Array<Attachment>;
@@ -47,6 +47,9 @@ export class Message {
 
     @OneToMany(() => MessageReaction, (messageReaction) => messageReaction.message)
     reactions: Array<MessageReaction>;
+
+    seenParticipants: Array<Participant>;
+    deliveredParticipants: Array<Participant>;
 
     @BeforeInsert()
     @BeforeUpdate()

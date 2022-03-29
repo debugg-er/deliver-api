@@ -1,13 +1,14 @@
 import {
     Entity,
     Column,
-    PrimaryColumn,
     BeforeInsert,
     BeforeUpdate,
     OneToMany,
     JoinTable,
     ManyToMany,
-    getRepository,
+    ManyToOne,
+    JoinColumn,
+    PrimaryGeneratedColumn,
 } from 'typeorm';
 import { IsIn, validateOrReject } from 'class-validator';
 import { Participant } from './Participant';
@@ -15,7 +16,7 @@ import { Message } from './Message';
 
 @Entity('conversations')
 export class Conversation {
-    @PrimaryColumn()
+    @PrimaryGeneratedColumn()
     id: number;
 
     @Column({ type: 'text' })
@@ -39,6 +40,8 @@ export class Conversation {
     })
     messages: Array<Message>;
 
+    @ManyToOne(() => Message)
+    @JoinColumn({ name: 'last_message_id', referencedColumnName: 'id' })
     lastMessage: Message | null;
 
     @BeforeInsert()

@@ -7,5 +7,6 @@ import { Conversation, Message, Participant, User } from '@entities';
 @Module({
     imports: [TypeOrmModule.forFeature([Conversation, User, Participant, Message])],
     providers: [EventGateway],
+    exports: [EventGateway],
 })
 export class EventModule {}

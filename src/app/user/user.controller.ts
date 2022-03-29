@@ -1,4 +1,4 @@
-import { BadRequestException, Body, Controller, Get, Patch } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Patch, Query } from '@nestjs/common';
 
 import { Authorize } from '@guards';
 import { AuthUser } from '@generals/param.decorator';
@@ -9,6 +9,7 @@ import { Token } from '../account';
 import { UserService } from './user.service';
 import { UpdateUserDto } from './user.dto';
 import { ConversationService } from '@app/conversation';
+import { PagingationDto } from '@generals/pagination.dto';
 
 @Controller('/users')
 export class UserController {
@@ -18,8 +19,11 @@ export class UserController {
     ) {}
 
     @Get('/')
-    async getUsers(): Promise<Array<User>> {
-        return this.userSerice.findAllUsers();
+    async getUsers(
+        @Query() pagination: PagingationDto,
+        @Query('q') query?: string,
+    ): Promise<Array<User>> {
+        return this.userSerice.findUsers(pagination, query);
     }
 
     @Get('/me')

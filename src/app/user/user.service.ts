@@ -7,6 +7,7 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 
 import { Participant, User } from '@entities';
+import { PagingationDto } from '@generals/pagination.dto';
 import environments from '@environments';
 
 import { CreateUserDto } from './user.dto';
@@ -30,6 +31,20 @@ export class UserService {
             throw new NotFoundException("Username doesn't exist");
         }
         return user;
+    }
+
+    public async findUsers(pagination: PagingationDto, query?: string): Promise<Array<User>> {
+        let queryBuilder = await this.userRepository
+            .createQueryBuilder('user')
+            .skip(pagination.offset)
+            .take(pagination.limit);
+
+        if (query) {
+            queryBuilder = queryBuilder.where('LOWER(CONCAT(first_name,last_name)) LIKE :query', {
+                query: `%${query}%`,
+            });
+        }
+        return queryBuilder.getMany();
     }
 
     public async createUser(dto: CreateUserDto): Promise<User> {
@@ -57,7 +72,7 @@ export class UserService {
         if (avatar) {
             const photoPath = path.join(environments.TEMP_FOLDER_PATH, avatar);
             if (!fs.existsSync(photoPath)) {
-                throw new BadRequestException('avatar not found');
+                throw new BadRequestException('Avatar not found');
             }
             avatarPath = path.join(environments.PUBLIC_FOLDER_PATH, avatar);
             await fs.promises.rename(photoPath, avatarPath);

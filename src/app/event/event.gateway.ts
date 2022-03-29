@@ -17,6 +17,9 @@ import { Conversation, Message, Participant, User } from '@entities';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
+    @WebSocketServer()
+    server: Server;
+
     constructor(
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
@@ -28,9 +31,6 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
         private readonly messageRepository: Repository<Message>,
     ) {}
 
-    @WebSocketServer()
-    server: Server;
-
     async handleConnection(client: Socket) {
         const { token } = client.handshake.auth;
         if (token) {
@@ -39,7 +39,27 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 const user = await this.userRepository.findOne(decoded.username);
                 if (!user) return;
                 await this.userRepository.update(user.username, { isActive: true });
+                const participants = await this.participantRepository
+                    .createQueryBuilder('p')
+                    .innerJoinAndSelect('p.conversation', 'c')
+                    .innerJoinAndSelect('p.user', 'u')
+                    .innerJoinAndSelect('c.participants', 'cp')
+                    .innerJoinAndSelect('cp.user', 'cpu')
+                    .leftJoinAndSelect('c.lastMessage', 'lm')
+                    .leftJoinAndSelect('lm.participant', 'lm_p')
+                    .leftJoinAndSelect('lm_p.user', 'lm_u')
+                    .andWhere('p.user = :username', {
+                        username: user.username,
+                    })
+                    .getMany();
+
+                const rooms = participants.map((p) => p.conversation.id.toString());
+                client.join(rooms);
+                const payload = { username: user.username, isActive: true };
+                this.server.in(rooms).emit('users-status', payload);
+
                 client.handshake.auth.user = user;
+                client.handshake.auth.participants = participants;
             } catch (e) {
                 console.log(e);
             }
@@ -47,30 +67,15 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.leave(client.id);
     }
 
-    @SubscribeMessage('join')
-    async handleUserJoinConversation(client: Socket, conversationId: number) {
-        if (!client.handshake.auth.user) return;
-        const participant = await this.participantRepository
-            .createQueryBuilder('participant')
-            .innerJoinAndSelect('participant.conversation', 'conversation')
-            .where('conversation.id = :conversationId', { conversationId })
-            .andWhere('participant.user = :username', {
-                username: client.handshake.auth.user.username,
-            })
-            .getOne();
-
-        if (!participant) return;
-        participant.user = client.handshake.auth.user;
-
-        client.rooms.forEach((room) => client.leave(room));
-        client.handshake.auth.participant = participant;
-        client.join(participant.conversation.id.toString());
-        console.log(client.rooms);
-    }
-
     @SubscribeMessage('message')
-    async handleUserSendMessage(client: Socket, text: string) {
-        const { participant } = client.handshake.auth;
+    async handleUserSendMessage(
+        client: Socket,
+        { text, conversationId }: { text: string; conversationId: number },
+    ) {
+        const participants: Array<Participant> = client.handshake.auth.participants;
+        const participant = participants.find((p) => p.conversation.id === conversationId);
+        if (!participant) return;
+
         const message = await this.messageRepository.save(
             this.messageRepository.create({
                 content: text,
@@ -78,13 +83,31 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 participant: participant,
             }),
         );
-        console.log(message);
-        console.log(participant.conversation.id.toString());
-        this.server.to(participant.conversation.id.toString()).emit('broadcast', message);
+        message.seenParticipants = [participant];
+        message.deliveredParticipants = [participant];
+
+        await this.participantRepository.update(
+            { id: participant.id },
+            { seenMessageId: message.id, deliveredMessageId: message.id },
+        );
+        client.broadcast.to(conversationId.toString()).emit('message', message);
+        return { data: message };
     }
 
     async handleDisconnect(client: Socket) {
-        if (!client.handshake.auth.user) return;
-        await this.userRepository.update(client.handshake.auth.user.username, { isActive: true });
+        const { user, participants } = client.handshake.auth;
+        if (!user) return;
+        await this.userRepository.update(user.username, { isActive: false });
+        const rooms = participants.map((p) => p.conversation.id.toString());
+        const payload = { username: user.username, isActive: false };
+        this.server.in(rooms).emit('users-status', payload);
+    }
+
+    findSocketByUsername(username: string): Socket | undefined {
+        for (const [, socket] of this.server.sockets.sockets) {
+            if (socket.handshake.auth.user?.username === username) {
+                return socket;
+            }
+        }
     }
 }

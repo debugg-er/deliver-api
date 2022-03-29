@@ -32,8 +32,10 @@ export class AccountController {
     @Redirect()
     async loginWithGoogle(@Query('code') code: string): Promise<any> {
         const token = await this.accountService.loginWithGoogle(code);
+        console.log(`${environments.FRONTEND_URL}?access_token=${token}`);
         return {
             url: `${environments.FRONTEND_URL}?access_token=${token}`,
+            statsCode: 301,
         };
     }
 
