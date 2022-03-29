@@ -3,7 +3,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 export class addLastMessageToConversations1647677566284 implements MigrationInterface {
     public async up(queryRunner: QueryRunner): Promise<void> {
         await queryRunner.query(`ALTER TABLE conversations
-            ADD COLUMN last_message_id INT REFERENCES messages(id)
+            ADD COLUMN last_message_id BIGINT REFERENCES messages(id)
         `);
 
         await queryRunner.query(`

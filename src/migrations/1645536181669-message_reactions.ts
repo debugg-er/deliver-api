@@ -5,7 +5,7 @@ export class messageReactions1645536181669 implements MigrationInterface {
         await queryRunner.query(`
             CREATE TABLE message_reactions (
                 participant_id INT NOT NULL,
-                message_id INT NOT NULL,
+                message_id BIGINT NOT NULL,
                 emoji CHAR(1) NOT NULL,
                 reacted_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
