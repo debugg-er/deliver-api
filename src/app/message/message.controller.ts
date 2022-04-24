@@ -1,15 +1,28 @@
-import { BadRequestException, Body, Controller, Param, Patch, Post } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Delete, Param, Patch, Post } from '@nestjs/common';
 
 import { AuthUser } from '@generals/param.decorator';
 import { Authorize } from '@guards';
 import { Token } from '@app/account';
 
 import { MessageService } from './message.service';
-import { UpdateMessageDto } from './message.dto';
+import { CreateMessageDto, ReactMessageDto, UpdateMessageDto } from './message.dto';
 
 @Controller('messages')
 export class MessageController {
     constructor(private messageService: MessageService) {}
+
+    @Post('/')
+    @Authorize()
+    postMessage(
+        @AuthUser() user: Token,
+        @Param('messageId') messageId: string,
+        @Body() dto: CreateMessageDto,
+    ): any {
+        if (!dto.content && !dto.attachments) {
+            throw new BadRequestException('content must not be empty');
+        }
+        return this.messageService.createMessage(user.username, dto);
+    }
 
     @Patch('/:messageId(\\d+)')
     @Authorize()
@@ -29,11 +42,14 @@ export class MessageController {
     reactMessage(
         @AuthUser() user: Token,
         @Param('messageId') messageId: string,
-        @Body('emoji') emoji: string,
+        @Body() dto: ReactMessageDto,
     ): any {
-        if (!emoji) {
-            throw new BadRequestException('Emoji is required');
-        }
-        return this.messageService.reactMessage(user.username, messageId, emoji);
+        return this.messageService.reactMessage(user.username, messageId, dto);
+    }
+
+    @Delete('/:messageId(\\d+)/reactions')
+    @Authorize()
+    deleteMessageReaction(@AuthUser() user: Token, @Param('messageId') messageId: string): any {
+        return this.messageService.deleteMessageReaction(user.username, messageId);
     }
 }

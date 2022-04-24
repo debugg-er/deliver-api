@@ -8,7 +8,7 @@ import { Token } from '../account';
 
 import { UserService } from './user.service';
 import { UpdateUserDto } from './user.dto';
-import { ConversationService } from '@app/conversation';
+import { ConversationService, FindConversationDto } from '@app/conversation';
 import { PagingationDto } from '@generals/pagination.dto';
 
 @Controller('/users')
@@ -19,23 +19,28 @@ export class UserController {
     ) {}
 
     @Get('/')
+    @Authorize()
     async getUsers(
+        @AuthUser() user: Token,
         @Query() pagination: PagingationDto,
         @Query('q') query?: string,
     ): Promise<Array<User>> {
-        return this.userSerice.findUsers(pagination, query);
+        return this.userSerice.findUsers(user.username, pagination, query);
     }
 
     @Get('/me')
     @Authorize()
     async getInfo(@AuthUser() user: Token): Promise<User> {
-        return this.userSerice.findUserByUsername(user.username);
+        return this.userSerice.findMe(user.username);
     }
 
     @Get('/me/conversations')
     @Authorize()
-    async getAuthorizedUserParticipants(@AuthUser() user: Token): Promise<Array<Conversation>> {
-        return this.conversationService.findUserConversations(user.username);
+    async getAuthorizedUserParticipants(
+        @AuthUser() user: Token,
+        @Query() dto: FindConversationDto,
+    ): Promise<Array<Conversation>> {
+        return this.conversationService.findUserConversations(user.username, dto);
     }
 
     @Patch('/me')

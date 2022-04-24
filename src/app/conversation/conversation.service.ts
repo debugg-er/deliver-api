@@ -1,50 +1,40 @@
-import { QueryFailedError, Repository } from 'typeorm';
+import { QueryFailedError, Repository, SelectQueryBuilder } from 'typeorm';
 import {
     BadRequestException,
     ForbiddenException,
     Injectable,
     NotFoundException,
+    UnauthorizedException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
-import { Conversation, Message, Participant } from '@entities';
+import { Attachment, Contact, Conversation, Message, Participant } from '@entities';
 import { PagingationDto } from '@generals/pagination.dto';
-import { CreateConversationDto } from './conversation.dto';
+import { CreateConversationDto, FindConversationDto } from './conversation.dto';
 import { PostgresError } from 'pg-error-enum';
-import { EventGateway } from '@app/event';
 
 // 🛸🛸🛸🛸🛸🛸🛸🛸🛸🛸
 @Injectable()
 export class ConversationService {
     constructor(
-        private readonly eventGateway: EventGateway,
-
         @InjectRepository(Conversation)
         private readonly conversationRepository: Repository<Conversation>,
         @InjectRepository(Message)
         private readonly messageRepository: Repository<Message>,
         @InjectRepository(Participant)
         private readonly participantRepository: Repository<Participant>,
+        @InjectRepository(Attachment)
+        private readonly attachmentRepository: Repository<Attachment>,
+
+        private readonly eventEmitter: EventEmitter2,
     ) {}
 
     public async findConversationById(
         username: string,
         conversationId: number,
     ): Promise<Conversation> {
-        const conversation = await this.conversationRepository
-            .createQueryBuilder('conversation')
-            .leftJoinAndSelect('conversation.participants', 'participant')
-            .innerJoinAndSelect('participant.user', 'user')
-            .leftJoinAndSelect('conversation.lastMessage', 'lastMessage')
-            .leftJoinAndSelect('lastMessage.participant', 'p')
-            .leftJoinAndSelect('p.user', 'u')
-            .where('conversation.id = :conversationId', { conversationId })
-            .getOne();
-
-        if (!conversation) {
-            throw new NotFoundException("Conversation not found or you're not in the conversation");
-        }
-        return conversation;
+        return this.findAndCheckConversation(username, conversationId);
     }
 
     public async findConversationByUsername(user1: string, user2: string): Promise<Conversation> {
@@ -57,7 +47,8 @@ export class ConversationService {
             .leftJoinAndSelect('lp.user', 'lpu')
             .innerJoin('cp.conversation', 'cpc')
             .leftJoin('cpc.participants', 'cpcp')
-            .where('cp.user = :user1', { user1 })
+            .where('c.type = :conversationType', { conversationType: 'personal' })
+            .andWhere('cp.user = :user1', { user1 })
             .andWhere('cpcp.user = :user2', { user2 })
             .getOne();
 
@@ -67,27 +58,67 @@ export class ConversationService {
         return conversation;
     }
 
-    public async findUserConversations(username: string): Promise<Array<Conversation>> {
+    public async findUserConversations(
+        username: string,
+        dto: FindConversationDto,
+    ): Promise<Array<Conversation>> {
+        function findConversationIdsQuery(qb: SelectQueryBuilder<any>): string {
+            qb = qb
+                .subQuery()
+                .select('p.conversation_id')
+                .from(Participant, 'p')
+                .innerJoin(Conversation, 'c', 'c.id = p.conversation_id')
+                .where('p.user = :username', { username })
+                .andWhere('p.removedAt IS NULL');
+
+            switch (dto.type) {
+                case 'group':
+                    qb = qb.andWhere('c.type = :type', { type: 'group' });
+                    break;
+                case 'friend':
+                case 'stranger':
+                    qb = qb
+                        .innerJoin(
+                            Participant,
+                            'p2',
+                            'p.conversation_id = p2.conversation_id AND p.id <> p2.id',
+                        )
+                        .andWhere('c.type = :type', { type: 'personal' })
+                        .andWhere(
+                            (qb2) =>
+                                `p2.user ${dto.type === 'stranger' ? 'NOT' : ''} IN ` +
+                                qb2
+                                    .subQuery()
+                                    .select('user_2')
+                                    .from(Contact, 'ct')
+                                    .where('user_1 = :username', { username })
+                                    .andWhere(`status = :status`, { status: 'friend' })
+                                    .getQuery(),
+                        );
+                    break;
+            }
+
+            return 'conversation.id IN ' + qb.getQuery();
+        }
+
         const conversations = await this.conversationRepository
             .createQueryBuilder('conversation')
             .leftJoinAndSelect('conversation.participants', 'participant')
             .innerJoinAndSelect('participant.user', 'user')
             .innerJoinAndSelect('conversation.lastMessage', 'last_message')
+            .leftJoinAndSelect('last_message.attachments', 'attachments')
             .innerJoinAndSelect('last_message.participant', 'lm_participant')
             .innerJoinAndSelect('lm_participant.user', 'lm_user')
-            .where(
-                (qb) =>
-                    'conversation.id IN ' +
-                    qb
-                        .subQuery()
-                        .select('p.conversation_id')
-                        .from(Participant, 'p')
-                        .where('p.user = :username', { username })
-                        .andWhere('p.removedAt IS NULL')
-                        .getQuery(),
-            )
+            .where(findConversationIdsQuery)
+            .andWhere('participant.removedAt IS NULL')
             .orderBy('last_message.createdAt', 'DESC')
+            .skip(dto.offset)
+            .take(dto.limit)
             .getMany();
+
+        if (conversations.length === 0) {
+            return [];
+        }
 
         const conversationIds = conversations.map((c) => c.id);
 
@@ -123,6 +154,7 @@ export class ConversationService {
             const lastMessageStatus = lastMessageStatuses.find(
                 (lms) => lms.conversationId === conversation.id,
             );
+            conversation._type = dto.type === 'group' ? undefined : dto.type;
             return { ...conversation, ...lastMessageStatus };
         });
     }
@@ -170,10 +202,11 @@ export class ConversationService {
         }
         const messages = await this.messageRepository
             .createQueryBuilder('message')
-            .loadRelationCountAndMap('message.reactionCount', 'message.reactions')
             .leftJoinAndSelect('message.reactions', 'mr')
+            .leftJoinAndSelect('message.attachments', 'ma')
             .innerJoinAndSelect('message.participant', 'participant')
             .innerJoinAndSelect('participant.user', 'user')
+            .loadRelationCountAndMap('message.reactionCount', 'message.reactions')
             .where('participant.conversation_id = :conversationId', { conversationId })
             .orderBy('message.id', 'DESC')
             .skip(pagination.offset)
@@ -194,6 +227,10 @@ export class ConversationService {
             message.deliveredParticipants = participants.filter(
                 (p) => +(p.deliveredMessageId || 0) >= +message.id,
             );
+            if (message.revokedAt) {
+                message.content = '';
+                message.attachments = [];
+            }
             return message;
         });
     }
@@ -222,12 +259,13 @@ export class ConversationService {
         const conversation = this.conversationRepository.create({ type: dto.type });
         await this.conversationRepository.insert(conversation);
 
+        const creatorParticipant = this.participantRepository.create({
+            user: { username: creatorUsername },
+            role: dto.type === 'group' ? 'admin' : undefined,
+            conversation: { id: conversation.id },
+        });
         conversation.participants = [
-            this.participantRepository.create({
-                user: { username: creatorUsername },
-                role: dto.type === 'group' ? 'admin' : undefined,
-                conversation: { id: conversation.id },
-            }),
+            creatorParticipant,
             ...dto.participantUsernames.map((username) =>
                 this.participantRepository.create({
                     user: { username },
@@ -239,6 +277,15 @@ export class ConversationService {
 
         try {
             await this.participantRepository.insert(conversation.participants);
+            if (dto.type === 'group') {
+                await this.messageRepository.insert(
+                    this.messageRepository.create({
+                        content: creatorUsername + ' Đã tạo nhóm trò chuyện',
+                        type: 'update',
+                        participant: creatorParticipant,
+                    }),
+                );
+            }
         } catch (err) {
             if (err instanceof QueryFailedError) {
                 if (err.driverError.code === PostgresError.FOREIGN_KEY_VIOLATION) {
@@ -249,17 +296,60 @@ export class ConversationService {
             throw err;
         }
 
-        const conversationWithAllData = await this.findConversationById(
-            creatorUsername,
-            conversation.id,
-        );
-        conversation.participants.forEach((participant) => {
-            const socket = this.eventGateway.findSocketByUsername(participant.user.username);
-            if (!socket) return;
-            participant.conversation = conversationWithAllData;
-            socket.handshake.auth.participants.push(participant);
-            socket.join(conversation.id.toString());
-        });
+        const fullConveration = await this.findConversationById(creatorUsername, conversation.id);
+        this.eventEmitter.emit('conversation_created', fullConveration);
+        return fullConveration;
+    }
+
+    public async findConversationMedia(
+        username: string,
+        conversationId: number,
+        pagination: PagingationDto,
+    ): Promise<Array<Attachment>> {
+        await this.findAndCheckConversation(username, conversationId);
+
+        const attachments = await this.attachmentRepository
+            .createQueryBuilder('a')
+            .addSelect('p.conversationId')
+            .innerJoinAndSelect('a.message', 'm')
+            .innerJoinAndSelect('m.participant', 'p')
+            .innerJoinAndSelect('p.user', 'u')
+            .where('p.conversation_id = :conversationId', { conversationId })
+            .andWhere('m.revokedAt IS NULL')
+            .andWhere('a.type IN (:...types)', { types: ['image', 'video'] })
+            .orderBy('a.id', 'DESC')
+            .skip(pagination.offset)
+            .take(pagination.limit)
+            .getMany();
+
+        return attachments;
+    }
+
+    private async findAndCheckConversation(
+        username: string,
+        conversationId: number,
+    ): Promise<Conversation> {
+        const conversation = await this.conversationRepository
+            .createQueryBuilder('c')
+            .leftJoinAndSelect('c.participants', 'p')
+            .leftJoinAndSelect('c.lastMessage', 'lm')
+            .leftJoinAndSelect('lm.attachments', 'lma')
+            .innerJoinAndSelect('p.user', 'u')
+            .leftJoinAndSelect('lm.participant', 'lmp')
+            .leftJoinAndSelect('lmp.user', 'lmpu')
+            .where('c.id = :conversationId', { conversationId })
+            .getOne();
+
+        if (!conversation) {
+            throw new NotFoundException('Conversation not found');
+        }
+        if (conversation.participants.every((p) => p.user.username !== username)) {
+            throw new UnauthorizedException('You are not in this conversation');
+        }
+
+        if (conversation.type === 'personal') {
+            // Not implemented
+        }
 
         return conversation;
     }

@@ -4,3 +4,4 @@ export * from './Message';
 export * from './Participant';
 export * from './User';
 export * from './MessageReaction';
+export * from './Contact';

@@ -5,7 +5,7 @@
 
 # Environment
 .env
-.tmp
+tmp
 
 # Logs
 logs

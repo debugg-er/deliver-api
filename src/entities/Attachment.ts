@@ -1,22 +1,25 @@
 import {
     Entity,
     Column,
-    PrimaryColumn,
     BeforeInsert,
     BeforeUpdate,
     ManyToOne,
     JoinColumn,
+    PrimaryGeneratedColumn,
 } from 'typeorm';
 import { validateOrReject } from 'class-validator';
 import { Message } from './Message';
 
 @Entity('attachments')
 export class Attachment {
-    @PrimaryColumn({ type: 'bigint' })
+    @PrimaryGeneratedColumn({ type: 'bigint' })
     id: number;
 
     @Column({ name: 'attachment_path', type: 'text' })
     attachmentPath: string;
+
+    @Column({ name: 'type', type: 'text' })
+    type: 'file' | 'video' | 'image';
 
     @ManyToOne(() => Message, (message) => message.attachments)
     @JoinColumn({ name: 'message_id', referencedColumnName: 'id' })

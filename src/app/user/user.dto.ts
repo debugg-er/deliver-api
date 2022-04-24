@@ -4,40 +4,41 @@ export class CreateUserDto {
     @IsNotEmpty()
     @MinLength(5)
     @MaxLength(32)
-    readonly username: string;
+    username: string;
 
     @IsNotEmpty()
     @MinLength(5)
     @MaxLength(32)
-    readonly password: string;
+    password: string;
 
     @IsNotEmpty()
     @IsEmail()
-    readonly email: string;
+    email: string;
 
     @IsOptional()
-    readonly firstName?: string;
+    firstName?: string;
 
     @IsNotEmpty()
-    readonly lastName: string;
+    lastName: string;
 
     @IsNotEmpty()
-    readonly female: boolean;
+    female: boolean;
 }
 
 export class UpdateUserDto {
     @IsOptional()
-    readonly email: string;
+    @IsEmail()
+    email: string;
 
     @IsOptional()
-    readonly firstName: string;
+    firstName: string;
 
     @IsOptional()
-    readonly lastName: string;
+    lastName: string;
 
     @IsOptional()
-    readonly avatar: string;
+    avatar: string;
 
     @IsOptional()
-    readonly female: boolean;
+    female: boolean;
 }

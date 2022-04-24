@@ -14,7 +14,7 @@ import { Participant } from './Participant';
 @Entity('message_reactions')
 export class MessageReaction {
     @PrimaryColumn({ name: 'message_id', type: 'bigint' })
-    messageId: number;
+    messageId: string;
 
     @PrimaryColumn({ name: 'participant_id' })
     participantId: number;
@@ -24,7 +24,7 @@ export class MessageReaction {
     emoji: string;
 
     @Column({ name: 'reacted_at', default: 'CURRENT_TIMESTAMP' })
-    created_at: Date;
+    createdAt: Date;
 
     @ManyToOne(() => Message, (message) => message.reactions)
     @JoinColumn({ name: 'message_id', referencedColumnName: 'id' })

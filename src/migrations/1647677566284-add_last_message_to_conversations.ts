@@ -14,7 +14,7 @@ export class addLastMessageToConversations1647677566284 implements MigrationInte
                     WHERE conversation_id = conversations.id
                 )
                 SELECT id FROM conversation_messages
-                WHERE created_at = (SELECT MAX(created_at) FROM conversation_messages)
+                WHERE id = (SELECT MAX(id) FROM conversation_messages)
                 limit 1
             );
         `);

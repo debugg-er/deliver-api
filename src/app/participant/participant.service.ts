@@ -1,14 +1,19 @@
 import { Repository } from 'typeorm';
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Conversation, Message, Participant } from '@entities';
+
+import { UpdateParticipantDto } from './participant.dto';
 
 @Injectable()
 export class ParticipantService {
     constructor(
         @InjectRepository(Participant)
         private readonly participantRepository: Repository<Participant>,
+
+        private readonly eventEmitter: EventEmitter2,
     ) {}
 
     public async findUserParticipants(username: string): Promise<Array<Participant>> {
@@ -77,5 +82,31 @@ export class ParticipantService {
             { id: participantId },
             { seenMessageId: p.conversation.lastMessage.id },
         );
+    }
+
+    public async updateParticipant(
+        username: string,
+        participantId: number,
+        dto: UpdateParticipantDto,
+    ) {
+        const participant = await this.participantRepository
+            .createQueryBuilder('p')
+            .innerJoinAndSelect('p.user', 'u')
+            .innerJoinAndSelect('p.conversation', 'c')
+            .leftJoin('c.participants', 'cp')
+            .where('p.id = :participantId', { participantId })
+            .andWhere('cp.user = :username', { username })
+            .getOne();
+
+        if (!participant) {
+            throw new BadRequestException(
+                "You are not in this conversation or participant doesn't exists",
+            );
+        }
+
+        participant.nickname = dto.nickname || participant.nickname;
+        await this.participantRepository.save(participant);
+        this.eventEmitter.emit('nickname_changed', participant);
+        return participant;
     }
 }

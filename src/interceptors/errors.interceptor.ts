@@ -9,6 +9,7 @@ import {
     BadRequestException,
 } from '@nestjs/common';
 import { ValidationError } from 'class-validator';
+import getValidationErrorMessage from '@utils/getValidationErrorMessage';
 import { Observable, catchError, map } from 'rxjs';
 
 @Injectable()
@@ -18,6 +19,7 @@ export class ErrorsInterceptor implements NestInterceptor {
     intercept(context: ExecutionContext, next: CallHandler): Observable<any> {
         return next.handle().pipe(
             map((data) => {
+                if (!data) return data;
                 if (data.url) {
                     return data;
                 }
@@ -33,9 +35,7 @@ export class ErrorsInterceptor implements NestInterceptor {
                     throw err;
                 }
                 if (Array.isArray(err) && err[0] instanceof ValidationError) {
-                    throw new BadRequestException(
-                        err.reduce((acc, cur) => [...acc, ...Object.values(cur.constraints)], []),
-                    );
+                    throw new BadRequestException(getValidationErrorMessage(err));
                 }
                 throw new BadGatewayException();
             }),

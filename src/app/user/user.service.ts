@@ -25,24 +25,51 @@ export class UserService {
         return this.userRepository.find();
     }
 
+    public async findMe(username: string): Promise<any> {
+        const user = await this.findUserByUsername(username);
+        const statistic = await this.userRepository.query(
+            `
+            SELECT
+                SUM(CASE WHEN (status = 'friend') THEN 1 ELSE 0) AS friendCount,
+                SUM(CASE WHEN (status = 'pending') THEN 1 ELSE 0) AS friendRequestCount
+            FROM contacts
+            WHERE user_1 = '$1'
+        `,
+            [username],
+        );
+        return { ...user, ...statistic };
+    }
+
     public async findUserByUsername(username: string): Promise<User> {
         const user = await this.userRepository.findOne(username);
         if (!user) {
             throw new NotFoundException("Username doesn't exist");
         }
+
         return user;
     }
 
-    public async findUsers(pagination: PagingationDto, query?: string): Promise<Array<User>> {
+    public async findUsers(
+        username: string,
+        pagination: PagingationDto,
+        query?: string,
+    ): Promise<Array<User>> {
         let queryBuilder = await this.userRepository
             .createQueryBuilder('user')
+            .addSelect('contact.status', 'user_status')
+            .leftJoinAndSelect('user.contactsOf', 'contact', 'contact.user_1 = :username', {
+                username,
+            })
             .skip(pagination.offset)
             .take(pagination.limit);
 
         if (query) {
-            queryBuilder = queryBuilder.where('LOWER(CONCAT(first_name,last_name)) LIKE :query', {
-                query: `%${query}%`,
-            });
+            queryBuilder = queryBuilder.andWhere(
+                'LOWER(CONCAT(first_name,last_name)) LIKE :query',
+                {
+                    query: `%${query}%`,
+                },
+            );
         }
         return queryBuilder.getMany();
     }

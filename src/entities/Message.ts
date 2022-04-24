@@ -22,6 +22,9 @@ export class Message {
     @Column({ type: 'text' })
     content: string;
 
+    @Column({ type: 'text' })
+    type: 'update' | null;
+
     @Column({ type: 'time with time zone', name: 'created_at', default: () => 'CURRENT_TIMESTAMP' })
     createdAt: Date;
 

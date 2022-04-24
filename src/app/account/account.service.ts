@@ -66,7 +66,7 @@ export class AccountService {
 
     public async forgotPassword(username: string): Promise<void> {
         const user = await this.userService.findUserByUsername(username);
-        await this.sendForgotPasswordMail(user);
+        this.sendForgotPasswordMail(user);
     }
 
     public async resetPassword(username: string, newPassword: string): Promise<void> {
@@ -83,7 +83,7 @@ export class AccountService {
             from: environments.MAIL,
             to: user.email,
             subject: '[Deliver] Reset your account password',
-            text: `click here to reset your password: ${environments.FRONTEND_URL}/reset?token=${token}`,
+            text: `Click here to reset your password: ${environments.FRONTEND_URL}/auth/forgot?token=${token}`,
         });
     }
 

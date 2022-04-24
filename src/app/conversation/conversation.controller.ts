@@ -18,6 +18,20 @@ export class ConversationController {
         return this.conversationService.findConversationById(user.username, conversationId);
     }
 
+    @Get('/:conversationId(\\d{0,10})/attachments')
+    @Authorize()
+    getConversationAttachments(
+        @AuthUser() user: Token,
+        @Param('conversationId') conversationId: number,
+        @Query() pagination: PagingationDto,
+    ) {
+        return this.conversationService.findConversationMedia(
+            user.username,
+            conversationId,
+            pagination,
+        );
+    }
+
     @Get('/:username')
     @Authorize()
     getConversationByUsername(@AuthUser() user: Token, @Param('username') username: string) {

@@ -13,6 +13,7 @@ import {
 import { IsIn, validateOrReject } from 'class-validator';
 import { Participant } from './Participant';
 import { Message } from './Message';
+import VirtualColumn from '../generals/VirtualColumn';
 
 @Entity('conversations')
 export class Conversation {
@@ -28,6 +29,9 @@ export class Conversation {
 
     @Column({ name: 'created_at', default: 'CURRENT_TIMESTAMP' })
     createdAt: Date;
+
+    @VirtualColumn('text')
+    _type?: 'friend' | 'stranger';
 
     @OneToMany(() => Participant, (participant) => participant.conversation)
     participants: Array<Participant>;
