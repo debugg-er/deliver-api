@@ -1,19 +1,21 @@
 import { QueryFailedError, Repository } from 'typeorm';
+import { PostgresError } from 'pg-error-enum';
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Contact, User } from '@entities';
 import { FindContactDto, ModifyContactDto } from './contact.dto';
-import { PostgresError } from 'pg-error-enum';
 
 @Injectable()
 export class ContactService {
     constructor(
         @InjectRepository(Contact)
         private readonly contactRepository: Repository<Contact>,
-
         @InjectRepository(User)
         private readonly userRepository: Repository<User>,
+
+        private readonly eventEmitter: EventEmitter2,
     ) {}
 
     async findContacts(username: string, dto: FindContactDto): Promise<Array<User>> {
@@ -134,5 +136,9 @@ export class ContactService {
                 });
                 break;
         }
+
+        const from = await this.userRepository.findOne(username);
+        const target = await this.userRepository.findOne(dto.target);
+        this.eventEmitter.emit('contact_modified', { action: dto.action, from, target });
     }
 }

@@ -1,4 +1,13 @@
-import { BadRequestException, Body, Controller, Get, Param, Post, Query } from '@nestjs/common';
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    Param,
+    Patch,
+    Post,
+    Query,
+} from '@nestjs/common';
 
 import { Authorize } from '@guards';
 import { PagingationDto } from '@generals/pagination.dto';
@@ -6,7 +15,7 @@ import { PagingationDto } from '@generals/pagination.dto';
 import { ConversationService } from './conversation.service';
 import { AuthUser } from '@generals/param.decorator';
 import { Token } from '@app/account';
-import { CreateConversationDto } from './conversation.dto';
+import { CreateConversationDto, UpdateConversationDto } from './conversation.dto';
 
 @Controller('conversations')
 export class ConversationController {
@@ -75,5 +84,24 @@ export class ConversationController {
             );
         }
         return this.conversationService.createConveration(user.username, dto);
+    }
+
+    @Patch('/:conversationId(\\d+)')
+    @Authorize()
+    updateConversation(
+        @AuthUser() user: Token,
+        @Body() dto: UpdateConversationDto,
+        @Param('conversationId') conversationId: number,
+    ) {
+        if (Object.keys(dto).length === 0) {
+            throw new BadRequestException('Update user require at least 1 data field');
+        }
+        return this.conversationService.updateConversation(user.username, conversationId, dto);
+    }
+
+    @Patch('/:conversationId(\\d+)/leave')
+    @Authorize()
+    leaveConversation(@AuthUser() user: Token, @Param('conversationId') conversationId: number) {
+        return this.conversationService.leaveConversation(user.username, conversationId);
     }
 }

@@ -6,7 +6,7 @@ import { PostgresError } from 'pg-error-enum';
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 
-import { Contact, Participant, User } from '@entities';
+import { Participant, User } from '@entities';
 import { PagingationDto } from '@generals/pagination.dto';
 import environments from '@environments';
 
@@ -19,8 +19,6 @@ export class UserService {
         private readonly userRepository: Repository<User>,
         @InjectRepository(Participant)
         private readonly participantRepository: Repository<Participant>,
-        @InjectRepository(Contact)
-        private readonly contactRepository: Repository<Contact>,
     ) {}
 
     public async findAllUsers(): Promise<Array<User>> {
@@ -32,83 +30,21 @@ export class UserService {
         const [statistic] = await this.userRepository.query(
             `
             SELECT
-                SUM(CASE WHEN (status = 'friend') THEN 1 ELSE 0 END)::INT AS friend_count,
-                SUM(CASE WHEN (status = 'pending') THEN 1 ELSE 0 END)::INT AS friend_request_count
+                SUM(CASE WHEN (status = 'friend') THEN 1 ELSE 0 END)::INT AS friendCount,
+                SUM(CASE WHEN (status = 'pending') THEN 1 ELSE 0 END)::INT AS friendRequestCount
             FROM contacts
             WHERE user_1 = $1
         `,
             [username],
         );
-        return {
-            ...user,
-            friendCount: statistic.friend_count,
-            friendRequestCount: statistic.friend_request_count,
-        };
-    }
-
-    public async findYouMayKnowns(username: string, pagination: PagingationDto): Promise<any> {
-        const releventContacts = await this.contactRepository
-            .createQueryBuilder('contact')
-            .select('contact.user_1', 'username')
-            .addSelect('COUNT(contact.user_2)::INT', 'mutualFriendCount')
-            .where(
-                (qb) =>
-                    'contact.user_2 IN ' +
-                    qb
-                        .subQuery()
-                        .select('c.user_2')
-                        .from(Contact, 'c')
-                        .where('user_1 = :username', { username })
-                        .andWhere('c.status = :status', { status: 'friend' })
-                        .getQuery(),
-            )
-            .andWhere('contact.status = :status', { status: 'friend' })
-            .andWhere('contact.user_1 <> :username', { username })
-            .andWhere(
-                (qb) =>
-                    'contact.user_1 NOT IN ' +
-                    qb
-                        .subQuery()
-                        .select('c.user_2')
-                        .from(Contact, 'c')
-                        .where('user_1 = :username', { username })
-                        .andWhere('c.status = :status', { status: 'friend' })
-                        .getQuery(),
-            )
-            .groupBy('contact.user_1')
-            .orderBy('COUNT(contact.user_2)', 'DESC')
-            .skip(pagination.offset)
-            .take(pagination.limit)
-            .getRawMany();
-
-        const users = await this.userRepository
-            .createQueryBuilder('u')
-            .addSelect('contact.status', 'u_status')
-            .leftJoin('u.contactsOf', 'contact', 'contact.user_1 = :username', {
-                username,
-            })
-            .where('u.username IN (:...usernames)', {
-                usernames: releventContacts.map((c) => c.username),
-            })
-            .getMany();
-
-        return releventContacts.map((c) => {
-            const user = users.find((u) => c.username === u.username);
-            if (!user) return;
-            user.mutualFriendCount = c.mutualFriendCount;
-            return user;
-        });
+        return { ...user, ...statistic };
     }
 
     public async findUserByUsername(username: string): Promise<User> {
         const user = await this.userRepository
             .createQueryBuilder('u')
-            .leftJoinAndMapMany('u.friends', 'u.contactUsers', 'cu', 'u_cu.status = :status', {
-                status: 'friend',
-            })
-            .where('u.username = :username', { username })
-            .getOne();
-
+            .leftJoinAndMapMany('u.friends', 'user')
+            .where('u.username = :username', { username });
         if (!user) {
             throw new NotFoundException("Username doesn't exist");
         }

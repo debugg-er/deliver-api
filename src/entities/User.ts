@@ -48,6 +48,8 @@ export class User {
     @VirtualColumn('character varying')
     status: Contact['status'];
 
+    mutualFriendCount?: number;
+
     @OneToMany(() => Participant, (participant) => participant.user)
     participants: Array<Participant>;
 
@@ -74,6 +76,14 @@ export class User {
         inverseJoinColumn: { name: 'conversation_id', referencedColumnName: 'id' },
     })
     conversations: Array<Conversation>;
+
+    @ManyToMany(() => User)
+    @JoinTable({
+        name: 'contacts',
+        joinColumn: { name: 'user_1', referencedColumnName: 'username' },
+        inverseJoinColumn: { name: 'user_2', referencedColumnName: 'username' },
+    })
+    contactUsers: Array<User>;
 
     @BeforeInsert()
     @BeforeUpdate()

@@ -34,6 +34,15 @@ export class UserController {
         return this.userSerice.findMe(user.username);
     }
 
+    @Get('/me/may_knowns')
+    @Authorize()
+    async getMayKnowns(
+        @AuthUser() user: Token,
+        @Query() pagination: PagingationDto,
+    ): Promise<User> {
+        return this.userSerice.findYouMayKnowns(user.username, pagination);
+    }
+
     @Get('/me/conversations')
     @Authorize()
     async getAuthorizedUserParticipants(

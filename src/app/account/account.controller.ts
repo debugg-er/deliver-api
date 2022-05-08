@@ -34,7 +34,7 @@ export class AccountController {
         const token = await this.accountService.loginWithGoogle(code);
         console.log(`${environments.FRONTEND_URL}?access_token=${token}`);
         return {
-            url: `${environments.FRONTEND_URL}?access_token=${token}`,
+            url: `${environments.FRONTEND_URL}/messages?access_token=${token}`,
             statsCode: 301,
         };
     }

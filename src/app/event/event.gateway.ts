@@ -1,4 +1,5 @@
 import {
+    MessageBody,
     OnGatewayConnection,
     OnGatewayDisconnect,
     SubscribeMessage,
@@ -15,6 +16,7 @@ import environment from '@environments';
 import { Token } from '@app/account';
 import { Repository } from 'typeorm';
 import { Conversation, Message, MessageReaction, Participant, User } from '@entities';
+import { ModifyContactDto } from '@app/contact';
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
@@ -45,7 +47,6 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
                     .innerJoinAndSelect('p.conversation', 'converastion')
                     .innerJoinAndSelect('p.user', 'u')
                     .where('p.user = :username', { username: user.username })
-                    .andWhere('p.removedAt IS NULL')
                     .getMany();
 
                 const rooms = participants.map((p) => p.conversation.id.toString());
@@ -59,7 +60,6 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
                 console.log(e);
             }
         }
-        client.leave(client.id);
     }
 
     async handleDisconnect(client: Socket) {
@@ -79,7 +79,6 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
             action: 'update_location' | 'stop_sharing';
         },
     ) {
-        console.log(dto);
         const participant = client.handshake.auth.participants.find(
             (p) => p.conversation.id === dto.conversationId,
         ) as Participant;
@@ -133,9 +132,69 @@ export class EventGateway implements OnGatewayConnection, OnGatewayDisconnect {
         });
     }
 
+    @OnEvent('participant_added')
+    async handleParticipantAdded(participant: Participant) {
+        const target = this.findSocketByUsername(participant.user.username);
+        if (!target) return;
+        target.join(participant.conversation.id.toString());
+    }
+    @OnEvent('participant_removed')
+    async handleParticipantRemoved(participant: Participant) {
+        const target = this.findSocketByUsername(participant.user.username);
+        if (!target) return;
+        target.leave(participant.conversation.id.toString());
+    }
+
     @OnEvent('nickname_changed')
     async handleNicknameChanged(participant: Participant) {
         this.server.to(participant.conversation.id.toString()).emit('change_nickname', participant);
+    }
+
+    @OnEvent('contact_modified')
+    async handleContactModified(dto: {
+        target: User;
+        from: User;
+        action: ModifyContactDto['action'];
+    }) {
+        const target = this.findSocketByUsername(dto.target.username);
+        const from = this.findSocketByUsername(dto.from.username);
+        if (from) {
+            from.emit('modify_contact', dto);
+        }
+        if (target) {
+            target.emit('modify_contact', dto);
+        }
+    }
+
+    @SubscribeMessage('answer_call')
+    async handleAnswerCall(
+        @MessageBody()
+        dto: {
+            signal: any;
+            from: User;
+            to: User;
+            input: 'audio' | 'video';
+            answer: boolean;
+        },
+    ) {
+        console.log('answer', dto.from.username, dto.to.username);
+        const target = this.findSocketByUsername(dto.to.username);
+        if (!target) return;
+        if (dto.answer) {
+            target.emit('call_accepted', dto.signal);
+        } else {
+            target.emit('call_declined', true);
+        }
+    }
+
+    @SubscribeMessage('call')
+    async handleCall(
+        @MessageBody() dto: { signal: any; from: User; to: User; input: 'audio' | 'video' },
+    ) {
+        console.log('call', dto.from.username, dto.to.username);
+        const target = this.findSocketByUsername(dto.to.username);
+        if (!target) return;
+        target.emit('call', dto);
     }
 
     findSocketByUsername(username: string): Socket | undefined {

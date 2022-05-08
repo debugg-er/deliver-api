@@ -11,7 +11,11 @@ import { EventEmitter2 } from '@nestjs/event-emitter';
 
 import { Attachment, Contact, Conversation, Message, Participant } from '@entities';
 import { PagingationDto } from '@generals/pagination.dto';
-import { CreateConversationDto, FindConversationDto } from './conversation.dto';
+import {
+    CreateConversationDto,
+    FindConversationDto,
+    UpdateConversationDto,
+} from './conversation.dto';
 import { PostgresError } from 'pg-error-enum';
 
 // 🛸🛸🛸🛸🛸🛸🛸🛸🛸🛸
@@ -343,14 +347,142 @@ export class ConversationService {
         if (!conversation) {
             throw new NotFoundException('Conversation not found');
         }
-        if (conversation.participants.every((p) => p.user.username !== username)) {
+        const myParticipant = conversation.participants.find((p) => p.user.username === username);
+        if (!myParticipant || myParticipant.removedAt !== null) {
             throw new UnauthorizedException('You are not in this conversation');
         }
 
-        if (conversation.type === 'personal') {
-            // Not implemented
+        return conversation;
+    }
+
+    async updateConversation(username: string, conversationId: number, dto: UpdateConversationDto) {
+        const conversation = await this.findAndCheckConversation(username, conversationId);
+        if (
+            dto.removeParticipants?.length > 0 &&
+            !conversation.participants.some(
+                (p) => p.user.username === username && p.role === 'admin',
+            )
+        ) {
+            throw new UnauthorizedException('You are not admin in this group');
+        }
+        const myParticipant = conversation.participants.find(
+            (p) => p.user.username === username,
+        ) as Participant;
+
+        const messages: Array<Message> = [];
+
+        if (conversation.type === 'group') {
+            if (dto.addParticipantUsernames) {
+                dto.addParticipantUsernames = dto.addParticipantUsernames.filter(
+                    (u) => u !== username,
+                );
+                try {
+                    const existingParticipants = conversation.participants.filter((p) =>
+                        dto.addParticipantUsernames.includes(p.user.username),
+                    );
+                    existingParticipants.forEach((p) => (p.removedAt = null));
+                    const newParticipants = dto.addParticipantUsernames
+                        .filter(
+                            (usrn) =>
+                                !conversation.participants.find((p) => p.user.username === usrn),
+                        )
+                        .map((username) =>
+                            this.participantRepository.create({
+                                user: { username },
+                                role: 'member',
+                                conversation: { id: conversation.id },
+                                conversationId: conversation.id,
+                            }),
+                        );
+                    const ps = [...existingParticipants, ...newParticipants];
+                    await this.participantRepository.save(ps);
+                    ps.forEach((p) => {
+                        p.conversation = { id: conversation.id } as any;
+                        this.eventEmitter.emit('participant_added', p);
+                    });
+                    messages.push(
+                        ...ps.map((p) =>
+                            this.messageRepository.create({
+                                content: `${username} Đã thêm ${p.user.username} vào nhóm`,
+                                type: 'update',
+                                participant: myParticipant,
+                            }),
+                        ),
+                    );
+                } catch (err) {
+                    if (err instanceof QueryFailedError) {
+                        if (err.driverError.code === PostgresError.FOREIGN_KEY_VIOLATION) {
+                            await this.conversationRepository.delete({ id: conversation.id });
+                            throw new BadRequestException('Username does not exist');
+                        }
+                    }
+                    throw err;
+                }
+            }
+
+            if (dto.removeParticipants) {
+                dto.removeParticipants = dto.removeParticipants.filter(
+                    (pid) => pid !== myParticipant.id,
+                );
+                const participantsWillBeRemove = conversation.participants.filter((p) =>
+                    dto.removeParticipants.includes(p.id),
+                );
+                participantsWillBeRemove.forEach((p) => (p.removedAt = new Date()));
+                await this.participantRepository.save(participantsWillBeRemove);
+                participantsWillBeRemove.forEach((p) => {
+                    p.conversation = { id: conversation.id } as any;
+                    this.eventEmitter.emit('participant_removed', p);
+                });
+                messages.push(
+                    ...participantsWillBeRemove.map((p) =>
+                        this.messageRepository.create({
+                            content: `${username} Xóa ${p.user.username} ra khỏi nhóm`,
+                            type: 'update',
+                            participant: myParticipant,
+                        }),
+                    ),
+                );
+            }
         }
 
-        return conversation;
+        conversation.title = dto.title || conversation.title;
+        await this.conversationRepository.save(conversation);
+        await this.messageRepository.save(messages);
+
+        const ms = await this.findConversationMessagesAndUpdateParticipantStatus(
+            username,
+            conversationId,
+            {
+                offset: 0,
+                limit: messages.length,
+            },
+        );
+        const c = await this.findConversationById(username, conversationId);
+        ms.forEach((m) => {
+            m.participant.conversation = c;
+            this.eventEmitter.emit('message_created', m);
+        });
+
+        return c;
+    }
+
+    async leaveConversation(username: string, conversationId: number) {
+        const conversation = await this.findAndCheckConversation(username, conversationId);
+        const me = conversation.participants.find(
+            (p) => p.user.username === username,
+        ) as Participant;
+
+        const role = me.role;
+        me.removedAt = new Date();
+        me.role = 'member';
+        await this.participantRepository.save(me);
+
+        if (role) {
+            const firstOne = conversation.participants.find((p) => p.removedAt !== null);
+            if (firstOne) {
+                firstOne.role = 'admin';
+                await this.participantRepository.save(firstOne);
+            }
+        }
     }
 }
